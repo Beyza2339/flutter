@@ -1,33 +1,238 @@
-# Gradle files
-.gradle/
-build/
+import 'package:flutter/material.dart';
 
-# Local configuration file (sdk path, etc)
-local.properties
+class User {
+  final String email;
+  final String password;
 
-# Log/OS Files
-*.log
+  User({required this.email, required this.password});
+}
 
-# Android Studio generated files and folders
-captures/
-.externalNativeBuild/
-.cxx/
-*.apk
-output.json
+class Product {
+  final String name;
+  final double price;
+  final String imageUrl;
+  List<Review>? reviews;
 
-# IntelliJ
-*.iml
-.idea/
-misc.xml
-deploymentTargetDropDown.xml
-render.experimental.xml
+  Product({required this.name, required this.price, required this.imageUrl});
+}
 
-# Keystore files
-*.jks
-*.keystore
+class Review {
+  final String username;
+  final double rating;
+  final String comment;
 
-# Google Services (e.g. APIs or Firebase)
-google-services.json
+  Review({required this.username, required this.rating, required this.comment});
+}
 
-# Android Profiling
-*.hprof
+class ECommerceApp extends StatefulWidget {
+  @override
+  _ECommerceAppState createState() => _ECommerceAppState();
+}
+
+class _ECommerceAppState extends State<ECommerceApp> {
+  List<Product> products = [
+    Product(name: 'Ürün 1', price: 100, imageUrl: 'https://example.com/image1.jpg'),
+    Product(name: 'Ürün 2', price: 200, imageUrl: 'https://example.com/image2.jpg'),
+    Product(name: 'Ürün 3', price: 300, imageUrl: 'https://example.com/image3.jpg'),
+  ];
+
+  List<Product> cartItems = [];
+  List<Order> orders = [];
+
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+
+  User? currentUser;
+
+  double getTotalPrice() {
+    double total = 0;
+    for (Product product in cartItems) {
+      total += product.price;
+    }
+    return total;
+  }
+
+  void addToCart(Product product) {
+    setState(() {
+      cartItems.add(product);
+    });
+    print("${product.name} sepete eklendi.");
+  }
+
+  void removeFromCart(Product product) {
+    setState(() {
+      cartItems.remove(product);
+    });
+    print("${product.name} sepetten çıkarıldı.");
+  }
+
+  void clearCart() {
+    setState(() {
+      cartItems.clear();
+    });
+    print("Sepet temizlendi.");
+  }
+
+  void login() {
+    String email = emailController.text;
+    String password = passwordController.text;
+
+    if (email == 'ornek@ornek.com' && password == 'sifre123') {
+      setState(() {
+        currentUser = User(email: email, password: password);
+      });
+      print("Giriş yapıldı. E-posta: $email");
+    } else {
+      print("Hatalı e-posta veya şifre.");
+    }
+  }
+
+  void logout() {
+    setState(() {
+      currentUser = null;
+    });
+    print("Çıkış yapıldı.");
+  }
+
+  void addReview(Product product, String username, double rating, String comment) {
+    setState(() {
+      if (product.reviews == null) {
+        product.reviews = [];
+      }
+      Review review = Review(username: username, rating: rating, comment: comment);
+      product.reviews!.add(review);
+    });
+    print("İnceleme eklendi.");
+  }
+
+  void placeOrder() {
+    if (cartItems.isNotEmpty) {
+      Order order = Order(product: cartItems.first, quantity: cartItems.length);
+      setState(() {
+        orders.add(order);
+        cartItems.clear();
+      });
+      print("Sipariş oluşturuldu.");
+    } else {
+      print("Sepetiniz boş. Sipariş vermek için ürün ekleyin.");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'E-Ticaret Uygulaması',
+      theme: ThemeData(primarySwatch: Colors.cyan),
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('E-Ticaret Uygulaması'),
+          actions: [
+            if (currentUser != null)
+              IconButton(
+                icon: Icon(Icons.logout),
+                onPressed: logout,
+              ),
+          ],
+        ),
+        body: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: currentUser != null
+              ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Hoş Geldiniz, ${currentUser!.email}!',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16.0),
+              Text(
+                'Sepetinizde ${cartItems.length} ürün bulunmaktadır.',
+                style: TextStyle(fontSize: 16.0),
+              ),
+              SizedBox(height: 16.0),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    Product product = products[index];
+                    return ListTile(
+                      leading: Image.network(
+                        product.imageUrl,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.error); // Hata durumunda hata ikonu göster
+                        },
+                      ),
+                      title: Text(product.name),
+                      subtitle: Text('${product.price} TL'),
+                      trailing: IconButton(
+                        icon: Icon(Icons.add_shopping_cart),
+                        onPressed: () => addToCart(product),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 16.0),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: Text('Sepeti Temizle'),
+                onPressed: clearCart,
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: Text('Sipariş Ver'),
+                onPressed: placeOrder,
+              ),
+              SizedBox(height: 16.0),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent),
+                child: Text('Ürün İncelemesi Yap'),
+                onPressed: () {
+                  if (products.isNotEmpty && products[0].reviews == null) {
+                    addReview(products[0], currentUser!.email, 4.5, 'Çok güzel ürün!');
+                  }
+                },
+              ),
+            ],
+          )
+              : Column(
+            children: [
+              SizedBox(height: 16.0),
+              Text(
+                'Giriş Yap',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16.0),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(labelText: 'E-posta'),
+              ),
+              SizedBox(height: 8.0),
+              TextField(
+                controller: passwordController,
+                decoration: InputDecoration(labelText: 'Şifre'),
+                obscureText: true,
+              ),
+              SizedBox(height: 16.0),
+              ElevatedButton(
+                child: Text('Giriş Yap'),
+                onPressed: login,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class Order {
+  final Product product;
+  final int quantity;
+
+  Order({required this.product, required this.quantity});
+}
+
+void main() {
+  runApp(ECommerceApp());
+}
